@@ -60,6 +60,7 @@ namespace SimpleJSON
 
 	public class JSONNode
 	{
+
 		#region common interface
 		public virtual void Add(string aKey, JSONNode aItem) { }
 		public virtual JSONNode this[int aIndex] { get { return null; } set { } }
@@ -239,6 +240,14 @@ namespace SimpleJSON
 			return aJSON.Substring(startIndex, endIndex - startIndex);
 		}
 
+		private static void AddElement(JSONNode parentNode, string key, JSONNode childNode)
+		{
+			if (parentNode is JSONArray)
+				parentNode.Add(childNode);
+			else if (key != "")
+				parentNode.Add(key, childNode);
+		}
+
 		public static JSONNode Parse(string aJSON)
 		{
 			Stack<JSONNode> stack = new Stack<JSONNode>();
@@ -247,6 +256,7 @@ namespace SimpleJSON
 			string Token = "";
 			string TokenName = "";
 			bool QuoteMode = false;
+			bool isCommaBreak = true;
 			while (i < aJSON.Length)
 			{
 				switch (aJSON[i])
@@ -261,10 +271,14 @@ namespace SimpleJSON
 						if (ctx != null)
 						{
 							TokenName = TokenName.Trim();
-							if (ctx is JSONArray)
-								ctx.Add(stack.Peek());
-							else if (TokenName != "")
-								ctx.Add(TokenName, stack.Peek());
+							if (!isCommaBreak && JSON.IsStrictValidate())
+							{
+								throw new Exception("Lack Comma at " + aJSON[i] + ", Context is \n" + GetJSONEroorContext(aJSON, i));
+							}
+							else
+							{
+								AddElement(ctx, TokenName, stack.Peek());
+							}
 						}
 						TokenName = "";
 						Token = "";
@@ -282,10 +296,15 @@ namespace SimpleJSON
 						if (ctx != null)
 						{
 							TokenName = TokenName.Trim();
-							if (ctx is JSONArray)
-								ctx.Add(stack.Peek());
-							else if (TokenName != "")
-								ctx.Add(TokenName, stack.Peek());
+							if (!isCommaBreak && JSON.IsStrictValidate())
+							{
+								throw new Exception("Lack Comma at " + aJSON[i] + ", Context is \n" + GetJSONEroorContext(aJSON, i));
+							}
+							else
+							{
+								AddElement(ctx, TokenName, stack.Peek());
+							}
+							isCommaBreak = true;
 						}
 						TokenName = "";
 						Token = "";
@@ -306,10 +325,15 @@ namespace SimpleJSON
 						if (Token != "")
 						{
 							TokenName = TokenName.Trim();
-							if (ctx is JSONArray)
-								ctx.Add(Token);
-							else if (TokenName != "")
-								ctx.Add(TokenName, Token);
+							if (!isCommaBreak && JSON.IsStrictValidate())
+							{
+								throw new Exception("Lack Comma at " + aJSON[i] + ", Context is \n" + GetJSONEroorContext(aJSON, i));
+							}
+							else
+							{
+								AddElement(ctx, TokenName, Token);
+								isCommaBreak = false;
+							}
 						}
 						TokenName = "";
 						Token = "";
@@ -322,6 +346,10 @@ namespace SimpleJSON
 						{
 							Token += aJSON[i];
 							break;
+						}
+						if (TokenName != "")
+						{
+							throw new Exception("Unused TokenName " + TokenName + " Json format seems invalid at " + aJSON[i] + " Context is : \n" + GetJSONEroorContext(aJSON, i));
 						}
 						TokenName = Token;
 						Token = "";
@@ -339,10 +367,7 @@ namespace SimpleJSON
 						}
 						if (Token != "")
 						{
-							if (ctx is JSONArray)
-								ctx.Add(Token);
-							else if (TokenName != "")
-								ctx.Add(TokenName, Token);
+							AddElement(ctx, TokenName, Token);
 						}
 						else
 						{
@@ -353,6 +378,7 @@ namespace SimpleJSON
 						}
 						TokenName = "";
 						Token = "";
+						isCommaBreak = true;
 						break;
 
 					case '\r':
@@ -788,11 +814,16 @@ namespace SimpleJSON
 
 		public override void Add(string aKey, JSONNode aItem)
 		{
+			if (m_Dict.ContainsKey(aKey))
+			{
+				throw new Exception("Json has duplicate key <" + aKey + "> JsonNode is : " + aItem);
+			}
+
 			if (!string.IsNullOrEmpty(aKey))
 			{
-				if (m_Dict.ContainsKey(aKey))
-					m_Dict[aKey] = aItem;
-				else
+				//if (m_Dict.ContainsKey(aKey))
+				//	m_Dict[aKey] = aItem;
+				//else
 					m_Dict.Add(aKey, aItem);
 			}
 			else
@@ -1141,6 +1172,11 @@ namespace SimpleJSON
 
 	public static class JSON
 	{
+		public static bool IsStrictValidate()
+		{
+			return false;
+		}
+
 		public static JSONNode Parse(string aJSON)
 		{
 			return JSONNode.Parse(aJSON);
