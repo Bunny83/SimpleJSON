@@ -1174,7 +1174,7 @@ namespace SimpleJSON
 	{
 		public static bool IsStrictValidate()
 		{
-			return false;
+			return true;
 		}
 
 		public static JSONNode Parse(string aJSON)
