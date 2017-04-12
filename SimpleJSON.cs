@@ -49,6 +49,11 @@
  *   allows to propertly convert the node tree back to json without type information loss. The actual value
  *   parsing now happens at parsing time and not when you actually access one of the casting properties.
  * 
+ * 2017-04-11 Update:
+ * - Fixed parsing bug where empty string values have been ignored.
+ * - Optimised "ToString" by using a StringBuilder internally. This should heavily improve performance for large files
+ * - Changed the overload of "ToString(string aIndent)" to "ToString(int aIndent)"
+ * 
  * The MIT License (MIT)
  * 
  * Copyright (c) 2012-2017 Markus Göbel
@@ -89,6 +94,11 @@ namespace SimpleJSON
         NullValue = 5,
         Boolean = 6,
         None = 7,
+    }
+    public enum JSONTextMode
+    {
+        Compact,
+        Indent
     }
 
     public abstract partial class JSONNode
@@ -153,15 +163,18 @@ namespace SimpleJSON
 
         public override string ToString()
         {
-            return "JSONNode";
+            StringBuilder sb = new StringBuilder();
+            WriteToStringBuilder(sb, 0, 0, JSONTextMode.Compact);
+            return sb.ToString();
         }
 
-        public virtual string ToString(string aIndent)
+        public virtual string ToString(int aIndent)
         {
-            return ToString(aIndent, "");
+            StringBuilder sb = new StringBuilder();
+            WriteToStringBuilder(sb, 0, aIndent, JSONTextMode.Indent);
+            return sb.ToString();
         }
-
-        internal abstract string ToString(string aIndent, string aPrefix);
+        internal abstract void WriteToStringBuilder(StringBuilder aSB, int aIndent, int aIndentInc, JSONTextMode aMode);
 
         #endregion common interface
 
@@ -283,7 +296,9 @@ namespace SimpleJSON
                 return true;
             bool aIsNull = a is JSONNull || ReferenceEquals(a, null) || a is JSONLazyCreator;
             bool bIsNull = b is JSONNull || ReferenceEquals(b, null) || b is JSONLazyCreator;
-            return (aIsNull && bIsNull);
+            if (aIsNull && bIsNull)
+                return true;
+            return a.Equals(b);
         }
 
         public static bool operator !=(JSONNode a, object b)
@@ -293,7 +308,7 @@ namespace SimpleJSON
 
         public override bool Equals(object obj)
         {
-            return System.Object.ReferenceEquals(this, obj);
+            return ReferenceEquals(this, obj);
         }
 
         public override int GetHashCode()
@@ -423,7 +438,7 @@ namespace SimpleJSON
                             throw new Exception("JSON Parse: Too many closing brackets");
 
                         stack.Pop();
-                        if (Token.Length > 0)
+                        if (Token.Length > 0 || TokenIsQuoted)
                         {
                             ParseElement(ctx, Token.ToString(), TokenName, TokenIsQuoted);
                             TokenIsQuoted = false;
@@ -440,7 +455,7 @@ namespace SimpleJSON
                             Token.Append(aJSON[i]);
                             break;
                         }
-                        TokenName = Token.ToString().Trim();
+                        TokenName = Token.ToString();
                         Token.Length = 0;
                         TokenIsQuoted = false;
                         break;
@@ -456,7 +471,7 @@ namespace SimpleJSON
                             Token.Append(aJSON[i]);
                             break;
                         }
-                        if (Token.Length > 0)
+                        if (Token.Length > 0 || TokenIsQuoted)
                         {
                             ParseElement(ctx, Token.ToString(), TokenName, TokenIsQuoted);
                             TokenIsQuoted = false;
@@ -734,11 +749,10 @@ namespace SimpleJSON
     public class JSONArray : JSONNode, IEnumerable
     {
         private List<JSONNode> m_List = new List<JSONNode>();
+        public bool inline = false;
 
         public override JSONNodeType Tag { get { return JSONNodeType.Array; } }
         public override bool IsArray { get { return true; } }
-
-
 
         public override JSONNode this[int aIndex]
         {
@@ -812,32 +826,6 @@ namespace SimpleJSON
                 yield return N;
         }
 
-        public override string ToString()
-        {
-            string result = "[ ";
-            foreach (JSONNode N in m_List)
-            {
-                if (result.Length > 2)
-                    result += ", ";
-                result += N.ToString();
-            }
-            result += " ]";
-            return result;
-        }
-
-        internal override string ToString(string aIndent, string aPrefix)
-        {
-            string result = "[ ";
-            foreach (JSONNode N in m_List)
-            {
-                if (result.Length > 3)
-                    result += ", ";
-                result += "\n"+aPrefix + aIndent + N.ToString(aIndent, aPrefix + aIndent);
-            }
-            result += "\n" + aPrefix + "]";
-            return result;
-        }
-
         public override void Serialize(System.IO.BinaryWriter aWriter)
         {
             aWriter.Write((byte)JSONNodeType.Array);
@@ -847,12 +835,36 @@ namespace SimpleJSON
                 m_List[i].Serialize(aWriter);
             }
         }
+
+        internal override void WriteToStringBuilder(StringBuilder aSB, int aIndent, int aIndentInc, JSONTextMode aMode)
+        {
+            aSB.Append('[');
+            int count = m_List.Count;
+            if (inline)
+                aMode = JSONTextMode.Compact;
+            for (int i = 0; i < count; i++)
+            {
+                if (i > 0)
+                    aSB.Append(',');
+                if (aMode == JSONTextMode.Indent)
+                    aSB.AppendLine();
+
+                if (aMode == JSONTextMode.Indent)
+                    aSB.Append(' ', aIndent + aIndentInc);
+                m_List[i].WriteToStringBuilder(aSB, aIndent + aIndentInc, aIndentInc, aMode);
+            }
+            if (aMode == JSONTextMode.Indent)
+                aSB.AppendLine().Append(' ', aIndent);
+            aSB.Append(']');
+        }
     }
     // End of JSONArray
 
     public class JSONObject : JSONNode, IEnumerable
     {
         private Dictionary<string, JSONNode> m_Dict = new Dictionary<string, JSONNode>();
+
+        public bool inline = false;
 
         public override JSONNodeType Tag { get { return JSONNodeType.Object; } }
         public override bool IsObject { get { return true; } }
@@ -965,33 +977,6 @@ namespace SimpleJSON
                 yield return N;
         }
 
-        public override string ToString()
-        {
-            string result = "{";
-            foreach (KeyValuePair<string, JSONNode> N in m_Dict)
-            {
-                if (result.Length > 2)
-                    result += ", ";
-                result += "\"" + Escape(N.Key) + "\":" + N.Value.ToString();
-            }
-            result += "}";
-            return result;
-        }
-
-        internal override string ToString(string aIndent, string aPrefix)
-        {
-            string result = "{ ";
-            foreach (KeyValuePair<string, JSONNode> N in m_Dict)
-            {
-                if (result.Length > 3)
-                    result += ", ";
-                result += "\n" + aPrefix + aIndent + "\"" + Escape(N.Key) + "\" : ";
-                result += N.Value.ToString(aIndent, aPrefix + aIndent);
-            }
-            result += "\n" + aPrefix + "}";
-            return result;
-        }
-
         public override void Serialize(System.IO.BinaryWriter aWriter)
         {
             aWriter.Write((byte)JSONNodeType.Object);
@@ -1002,6 +987,33 @@ namespace SimpleJSON
                 m_Dict[K].Serialize(aWriter);
             }
         }
+        internal override void WriteToStringBuilder(StringBuilder aSB, int aIndent, int aIndentInc, JSONTextMode aMode)
+        {
+            aSB.Append('{');
+            bool first = true;
+            if (inline)
+                aMode = JSONTextMode.Compact;
+            foreach (var k in m_Dict)
+            {
+                if (!first)
+                    aSB.Append(',');
+                first = false;
+                if (aMode == JSONTextMode.Indent)
+                    aSB.AppendLine();
+                if (aMode == JSONTextMode.Indent)
+                    aSB.Append(' ', aIndent + aIndentInc);
+                aSB.Append('\"').Append(Escape(k.Key)).Append('\"');
+                if (aMode == JSONTextMode.Compact)
+                    aSB.Append(':');
+                else
+                    aSB.Append(" : ");
+                k.Value.WriteToStringBuilder(aSB, aIndent + aIndentInc, aIndentInc, aMode);
+            }
+            if (aMode == JSONTextMode.Indent)
+                aSB.AppendLine().Append(' ', aIndent);
+            aSB.Append('}');
+        }
+
     }
     // End of JSONObject
 
@@ -1026,24 +1038,33 @@ namespace SimpleJSON
             m_Data = aData;
         }
 
-        public override string ToString()
-        {
-            return "\"" + Escape(m_Data) + "\"";
-        }
-
-        internal override string ToString(string aIndent, string aPrefix)
-        {
-            return "\"" + Escape(m_Data) + "\"";
-        }
-
         public override void Serialize(System.IO.BinaryWriter aWriter)
         {
             aWriter.Write((byte)JSONNodeType.String);
             aWriter.Write(m_Data);
         }
+        internal override void WriteToStringBuilder(StringBuilder aSB, int aIndent, int aIndentInc, JSONTextMode aMode)
+        {
+            aSB.Append('\"').Append(Escape(m_Data)).Append('\"');
+        }
+        public override bool Equals(object obj)
+        {
+            if (base.Equals(obj))
+                return true;
+            string s = obj as string;
+            if (s != null)
+                return m_Data == s;
+            JSONString s2 = obj as JSONString;
+            if (s2 != null)
+                return m_Data == s2.m_Data;
+            return false;
+        }
+        public override int GetHashCode()
+        {
+            return m_Data.GetHashCode();
+        }
     }
     // End of JSONString
-
 
     public class JSONNumber : JSONNode
     {
@@ -1080,24 +1101,43 @@ namespace SimpleJSON
             Value = aData;
         }
 
-        public override string ToString()
-        {
-            return m_Data.ToString();
-        }
-
-        internal override string ToString(string aIndent, string aPrefix)
-        {
-            return m_Data.ToString();
-        }
-
         public override void Serialize(System.IO.BinaryWriter aWriter)
         {
             aWriter.Write((byte)JSONNodeType.Number);
             aWriter.Write(m_Data);
         }
+        internal override void WriteToStringBuilder(StringBuilder aSB, int aIndent, int aIndentInc, JSONTextMode aMode)
+        {
+            aSB.Append(m_Data);
+        }
+        private static bool IsNumeric(object value)
+        {
+            return value is int || value is uint
+                || value is float || value is double
+                || value is decimal
+                || value is long || value is ulong
+                || value is short || value is ushort
+                || value is sbyte || value is byte;
+        }
+        public override bool Equals(object obj)
+        {
+            if (obj == null)
+                return false;
+            if (base.Equals(obj))
+                return true;
+            JSONNumber s2 = obj as JSONNumber;
+            if (s2 != null)
+                return m_Data == s2.m_Data;
+            if (IsNumeric(obj))
+                return Convert.ToDouble(obj) == m_Data;
+            return false;
+        }
+        public override int GetHashCode()
+        {
+            return m_Data.GetHashCode();
+        }
     }
     // End of JSONNumber
-
 
     public class JSONBool : JSONNode
     {
@@ -1133,31 +1173,35 @@ namespace SimpleJSON
             Value = aData;
         }
 
-        public override string ToString()
-        {
-            return (m_Data) ? "true" : "false";
-        }
-
-        internal override string ToString(string aIndent, string aPrefix)
-        {
-            return (m_Data) ? "true" : "false";
-        }
-
         public override void Serialize(System.IO.BinaryWriter aWriter)
         {
             aWriter.Write((byte)JSONNodeType.Boolean);
             aWriter.Write(m_Data);
         }
+        internal override void WriteToStringBuilder(StringBuilder aSB, int aIndent, int aIndentInc, JSONTextMode aMode)
+        {
+            aSB.Append((m_Data) ? "true" : "false");
+        }
+        public override bool Equals(object obj)
+        {
+            if (obj == null)
+                return false;
+            if (obj is bool)
+                return m_Data == (bool)obj;
+            return false;
+        }
+        public override int GetHashCode()
+        {
+            return m_Data.GetHashCode();
+        }
     }
     // End of JSONBool
-
 
     public class JSONNull : JSONNode
     {
 
         public override JSONNodeType Tag { get { return JSONNodeType.NullValue; } }
         public override bool IsNull { get { return true; } }
-
 
         public override string Value
         {
@@ -1170,16 +1214,6 @@ namespace SimpleJSON
             set { }
         }
 
-        public override string ToString()
-        {
-            return "null";
-        }
-
-        internal override string ToString(string aIndent, string aPrefix)
-        {
-            return "null";
-        }
-
         public override bool Equals(object obj)
         {
             if (object.ReferenceEquals(this, obj))
@@ -1188,12 +1222,16 @@ namespace SimpleJSON
         }
         public override int GetHashCode()
         {
-            return base.GetHashCode();
+            return 0;
         }
 
         public override void Serialize(System.IO.BinaryWriter aWriter)
         {
             aWriter.Write((byte)JSONNodeType.NullValue);
+        }
+        internal override void WriteToStringBuilder(StringBuilder aSB, int aIndent, int aIndentInc, JSONTextMode aMode)
+        {
+            aSB.Append("null");
         }
     }
     // End of JSONNull
@@ -1293,17 +1331,7 @@ namespace SimpleJSON
 
         public override int GetHashCode()
         {
-            return base.GetHashCode();
-        }
-
-        public override string ToString()
-        {
-            return "";
-        }
-
-        internal override string ToString(string aIndent, string aPrefix)
-        {
-            return "";
+            return 0;
         }
 
         public override int AsInt
@@ -1384,6 +1412,10 @@ namespace SimpleJSON
                 Set(tmp);
                 return tmp;
             }
+        }
+        internal override void WriteToStringBuilder(StringBuilder aSB, int aIndent, int aIndentInc, JSONTextMode aMode)
+        {
+            aSB.Append("null");
         }
     }
     // End of JSONLazyCreator
