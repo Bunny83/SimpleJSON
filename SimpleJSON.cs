@@ -80,6 +80,10 @@
  *   CreateOrGet will not reuse the cached instance but instead create a new JSONNull instance each time.
  *   I made the JSONNull constructor private so if you need to create an instance manually use
  *   JSONNull.CreateOrGet()
+ *   
+ * [2018-01-09 Update]
+ * - Changed all double.TryParse and double.ToString uses to use the invariant culture to avoid problems
+ *   on systems with a culture that uses a comma as decimal point.
  * 
  * 
  * The MIT License (MIT)
@@ -108,6 +112,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 
@@ -325,13 +330,13 @@ namespace SimpleJSON
             get
             {
                 double v = 0.0;
-                if (double.TryParse(Value, out v))
+                if (double.TryParse(Value,NumberStyles.Float, CultureInfo.InvariantCulture, out v))
                     return v;
                 return 0.0;
             }
             set
             {
-                Value = value.ToString();
+                Value = value.ToString(CultureInfo.InvariantCulture);
             }
         }
 
@@ -533,7 +538,7 @@ namespace SimpleJSON
             else
             {
                 double val;
-                if (double.TryParse(token, out val))
+                if (double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out val))
                     ctx.Add(tokenName, val);
                 else
                     ctx.Add(tokenName, token);
@@ -1015,11 +1020,11 @@ namespace SimpleJSON
 
         public override string Value
         {
-            get { return m_Data.ToString(); }
+            get { return m_Data.ToString(CultureInfo.InvariantCulture); }
             set
             {
                 double v;
-                if (double.TryParse(value, out v))
+                if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out v))
                     m_Data = v;
             }
         }
@@ -1042,7 +1047,7 @@ namespace SimpleJSON
 
         internal override void WriteToStringBuilder(StringBuilder aSB, int aIndent, int aIndentInc, JSONTextMode aMode)
         {
-            aSB.Append(m_Data);
+            aSB.Append(Value);
         }
         private static bool IsNumeric(object value)
         {
