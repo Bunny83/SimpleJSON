@@ -24,7 +24,6 @@
  * - It can serialize/deserialize a node tree into/from an experimental compact binary format. It might
  *   be handy if you want to store things in a file and don't want it to be easily modifiable
  * 
- * 
  * [2012-12-17 Update]
  * - Added internal JSONLazyCreator class which simplifies the construction of a JSON tree
  *   Now you can simple reference any item that doesn't exist yet and it will return a JSONLazyCreator
@@ -80,10 +79,16 @@
  *   CreateOrGet will not reuse the cached instance but instead create a new JSONNull instance each time.
  *   I made the JSONNull constructor private so if you need to create an instance manually use
  *   JSONNull.CreateOrGet()
- *   
+ * 
  * [2018-01-09 Update]
  * - Changed all double.TryParse and double.ToString uses to use the invariant culture to avoid problems
  *   on systems with a culture that uses a comma as decimal point.
+ * 
+ * [2018-01-26 Update]
+ * - Added AsLong. Note that a JSONNumber is stored as double and can't represent all long values. However
+ *   storing it as string would work.
+ * - Added static setting "JSONNode.longAsString" which controls the default type that is used by the
+ *   LazyCreator when using AsLong
  * 
  * 
  * The MIT License (MIT)
@@ -239,6 +244,7 @@ namespace SimpleJSON
         #region common interface
 
         public static bool forceASCII = false; // Use Unicode by default
+        public static bool longAsString = false; // lazy creator creates a JSONString instead of JSONNumber
 
         public abstract JSONNodeType Tag { get; }
 
@@ -367,6 +373,21 @@ namespace SimpleJSON
             }
         }
 
+        public virtual long AsLong
+        {
+            get
+            {
+                long val = 0;
+                if (long.TryParse(Value, out val))
+                    return val;
+                return 0L;
+            }
+            set
+            {
+                Value = value.ToString();
+            }
+        }
+
         public virtual JSONArray AsArray
         {
             get
@@ -422,6 +443,15 @@ namespace SimpleJSON
         public static implicit operator int(JSONNode d)
         {
             return (d == null) ? 0 : d.AsInt;
+        }
+
+        public static implicit operator JSONNode(long n)
+        {
+            return new JSONNumber(n);
+        }
+        public static implicit operator long(JSONNode d)
+        {
+            return (d == null) ? 0L : d.AsLong;
         }
 
         public static implicit operator JSONNode(bool b)
@@ -1034,6 +1064,11 @@ namespace SimpleJSON
             get { return m_Data; }
             set { m_Data = value; }
         }
+        public override long AsLong
+        {
+            get { return (long)m_Data; }
+            set { m_Data = value; }
+        }
 
         public JSONNumber(double aData)
         {
@@ -1316,6 +1351,25 @@ namespace SimpleJSON
             {
                 JSONNumber tmp = new JSONNumber(value);
                 Set(tmp);
+            }
+        }
+
+        public override long AsLong
+        {
+            get
+            {
+                if (longAsString)
+                    Set(new JSONString("0"));
+                else
+                    Set(new JSONNumber(0.0));
+                return 0L;
+            }
+            set
+            {
+                if (longAsString)
+                    Set(new JSONString(value.ToString()));
+                else
+                    Set(new JSONNumber(value));
             }
         }
 
