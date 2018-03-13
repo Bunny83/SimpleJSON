@@ -447,6 +447,8 @@ namespace SimpleJSON
 
         public static implicit operator JSONNode(long n)
         {
+            if (longAsString)
+                return new JSONString(n.ToString());
             return new JSONNumber(n);
         }
         public static implicit operator long(JSONNode d)
