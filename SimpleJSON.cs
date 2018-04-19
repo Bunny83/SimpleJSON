@@ -739,6 +739,10 @@ namespace SimpleJSON
             return ctx;
         }
 
+        public virtual bool ContainsKey(string key)
+        {
+            return false;
+        }
     }
     // End of JSONNode
 
@@ -822,6 +826,10 @@ namespace SimpleJSON
             }
         }
 
+        public List<JSONNode> GetChildrenList()
+        {
+            return m_List;
+        }
 
         internal override void WriteToStringBuilder(StringBuilder aSB, int aIndent, int aIndentInc, JSONTextMode aMode)
         {
@@ -992,6 +1000,10 @@ namespace SimpleJSON
             aSB.Append('}');
         }
 
+        public override bool ContainsKey(string key)
+        {
+            return m_Dict.ContainsKey(key);
+        }
     }
     // End of JSONObject
 
