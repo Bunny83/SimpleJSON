@@ -90,6 +90,8 @@
  * - Added static setting "JSONNode.longAsString" which controls the default type that is used by the
  *   LazyCreator when using AsLong
  * 
+ * [2018-04-25 Update]
+ *  - Added support for parsing single values (JSONBool, JSONString, JSONNumber, JSONNull) as top level value.
  * 
  * The MIT License (MIT)
  * 
@@ -555,26 +557,20 @@ namespace SimpleJSON
             return result;
         }
 
-        static void ParseElement(JSONNode ctx, string token, string tokenName, bool quoted)
+        private static JSONNode ParseElement(string token, bool quoted)
         {
             if (quoted)
-            {
-                ctx.Add(tokenName, token);
-                return;
-            }
+                return token;
             string tmp = token.ToLower();
             if (tmp == "false" || tmp == "true")
-                ctx.Add(tokenName, tmp == "true");
-            else if (tmp == "null")
-                ctx.Add(tokenName, null);
+                return tmp == "true";
+            if (tmp == "null")
+                return JSONNull.CreateOrGet();
+            double val;
+            if (double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out val))
+                return val;
             else
-            {
-                double val;
-                if (double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out val))
-                    ctx.Add(tokenName, val);
-                else
-                    ctx.Add(tokenName, token);
-            }
+                return token;
         }
 
         public static JSONNode Parse(string aJSON)
@@ -636,10 +632,8 @@ namespace SimpleJSON
 
                         stack.Pop();
                         if (Token.Length > 0 || TokenIsQuoted)
-                        {
-                            ParseElement(ctx, Token.ToString(), TokenName, TokenIsQuoted);
-                            TokenIsQuoted = false;
-                        }
+                            ctx.Add(TokenName, ParseElement(Token.ToString(), TokenIsQuoted));
+                        TokenIsQuoted = false;
                         TokenName = "";
                         Token.Length = 0;
                         if (stack.Count > 0)
@@ -669,10 +663,8 @@ namespace SimpleJSON
                             break;
                         }
                         if (Token.Length > 0 || TokenIsQuoted)
-                        {
-                            ParseElement(ctx, Token.ToString(), TokenName, TokenIsQuoted);
-                            TokenIsQuoted = false;
-                        }
+                            ctx.Add(TokenName, ParseElement(Token.ToString(), TokenIsQuoted));
+                        TokenIsQuoted = false;
                         TokenName = "";
                         Token.Length = 0;
                         TokenIsQuoted = false;
@@ -736,6 +728,8 @@ namespace SimpleJSON
             {
                 throw new Exception("JSON Parse: Quotation marks seems to be messed up.");
             }
+            if (ctx == null)
+                return ParseElement(Token.ToString(), TokenIsQuoted);
             return ctx;
         }
 
@@ -1232,59 +1226,36 @@ namespace SimpleJSON
             m_Key = aKey;
         }
 
-        private void Set(JSONNode aVal)
+        private T Set<T>(T aVal) where T : JSONNode
         {
             if (m_Key == null)
-            {
                 m_Node.Add(aVal);
-            }
             else
-            {
                 m_Node.Add(m_Key, aVal);
-            }
             m_Node = null; // Be GC friendly.
+            return aVal;
         }
 
         public override JSONNode this[int aIndex]
         {
-            get
-            {
-                return new JSONLazyCreator(this);
-            }
-            set
-            {
-                var tmp = new JSONArray();
-                tmp.Add(value);
-                Set(tmp);
-            }
+            get { return new JSONLazyCreator(this); }
+            set { Set(new JSONArray()).Add(value); }
         }
 
         public override JSONNode this[string aKey]
         {
-            get
-            {
-                return new JSONLazyCreator(this, aKey);
-            }
-            set
-            {
-                var tmp = new JSONObject();
-                tmp.Add(aKey, value);
-                Set(tmp);
-            }
+            get { return new JSONLazyCreator(this, aKey); }
+            set { Set(new JSONObject()).Add(aKey, value); }
         }
 
         public override void Add(JSONNode aItem)
         {
-            var tmp = new JSONArray();
-            tmp.Add(aItem);
-            Set(tmp);
+            Set(new JSONArray()).Add(aItem);
         }
 
         public override void Add(string aKey, JSONNode aItem)
         {
-            var tmp = new JSONObject();
-            tmp.Add(aKey, aItem);
-            Set(tmp);
+            Set(new JSONObject()).Add(aKey, aItem);
         }
 
         public static bool operator ==(JSONLazyCreator a, object b)
@@ -1313,47 +1284,20 @@ namespace SimpleJSON
 
         public override int AsInt
         {
-            get
-            {
-                JSONNumber tmp = new JSONNumber(0);
-                Set(tmp);
-                return 0;
-            }
-            set
-            {
-                JSONNumber tmp = new JSONNumber(value);
-                Set(tmp);
-            }
+            get { Set(new JSONNumber(0)); return 0; }
+            set { Set(new JSONNumber(value)); }
         }
 
         public override float AsFloat
         {
-            get
-            {
-                JSONNumber tmp = new JSONNumber(0.0f);
-                Set(tmp);
-                return 0.0f;
-            }
-            set
-            {
-                JSONNumber tmp = new JSONNumber(value);
-                Set(tmp);
-            }
+            get { Set(new JSONNumber(0.0f)); return 0.0f; }
+            set { Set(new JSONNumber(value)); }
         }
 
         public override double AsDouble
         {
-            get
-            {
-                JSONNumber tmp = new JSONNumber(0.0);
-                Set(tmp);
-                return 0.0;
-            }
-            set
-            {
-                JSONNumber tmp = new JSONNumber(value);
-                Set(tmp);
-            }
+            get { Set(new JSONNumber(0.0)); return 0.0; }
+            set { Set(new JSONNumber(value)); }
         }
 
         public override long AsLong
@@ -1377,37 +1321,18 @@ namespace SimpleJSON
 
         public override bool AsBool
         {
-            get
-            {
-                JSONBool tmp = new JSONBool(false);
-                Set(tmp);
-                return false;
-            }
-            set
-            {
-                JSONBool tmp = new JSONBool(value);
-                Set(tmp);
-            }
+            get { Set(new JSONBool(false)); return false; }
+            set { Set(new JSONBool(value)); }
         }
 
         public override JSONArray AsArray
         {
-            get
-            {
-                JSONArray tmp = new JSONArray();
-                Set(tmp);
-                return tmp;
-            }
+            get { return Set(new JSONArray()); }
         }
 
         public override JSONObject AsObject
         {
-            get
-            {
-                JSONObject tmp = new JSONObject();
-                Set(tmp);
-                return tmp;
-            }
+            get { return Set(new JSONObject()); }
         }
         internal override void WriteToStringBuilder(StringBuilder aSB, int aIndent, int aIndentInc, JSONTextMode aMode)
         {
