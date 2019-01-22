@@ -168,7 +168,7 @@ namespace SimpleJSON
 		public static JSONNode LoadFromCompressedStream(System.IO.Stream aData)
 		{
 			var zin = new ICSharpCode.SharpZipLib.BZip2.BZip2InputStream(aData);
-			return LoadFromStream(zin);
+			return LoadFromBinaryStream(zin);
 		}
 		public static JSONNode LoadFromCompressedFile(string aFileName)
 		{
