@@ -11,6 +11,10 @@
  * You can use the define "SimpleJSON_ExcludeBinary" to selectively disable
  * this extension without the need to remove the file from the project.
  * 
+ * If you want to use compression when saving to file / stream / B64 you have to include
+ * SharpZipLib ( http://www.icsharpcode.net/opensource/sharpziplib/ ) in your project and
+ * define "USE_SharpZipLib" at the top of the file
+ * 
  * 
  * The MIT License (MIT)
  * 
