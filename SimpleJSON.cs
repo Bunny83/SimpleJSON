@@ -5,10 +5,6 @@
  * It mainly has been written as a simple JSON parser. It can build a JSON string
  * from the node-tree, or generate a node tree from any valid JSON string.
  * 
- * If you want to use compression when saving to file / stream / B64 you have to include
- * SharpZipLib ( http://www.icsharpcode.net/opensource/sharpziplib/ ) in your project and
- * define "USE_SharpZipLib" at the top of the file
- * 
  * Written by Bunny83 
  * 2012-06-09
  * 
@@ -92,6 +88,10 @@
  * 
  * [2018-04-25 Update]
  *  - Added support for parsing single values (JSONBool, JSONString, JSONNumber, JSONNull) as top level value.
+ *  
+ * [2019-02-18 Update]
+ *  - Added HasKey(key) and GetValueOrDefault(key, default) to the JSONNode class to provide way to read
+ *    values conditionally without creating a LazyCreator
  * 
  * The MIT License (MIT)
  * 
@@ -306,6 +306,16 @@ namespace SimpleJSON
                     foreach (var D in C.DeepChildren)
                         yield return D;
             }
+        }
+
+        public virtual bool HasKey(string aKey)
+        {
+            return false;
+        }
+
+        public virtual JSONNode GetValueOrDefault(string aKey, JSONNode aDefault)
+        {
+            return aDefault;
         }
 
         public override string ToString()
@@ -948,6 +958,19 @@ namespace SimpleJSON
             {
                 return null;
             }
+        }
+
+        public override bool HasKey(string aKey)
+        {
+            return m_Dict.ContainsKey(aKey);
+        }
+
+        public override JSONNode GetValueOrDefault(string aKey, JSONNode aDefault)
+        {
+            JSONNode res;
+            if (m_Dict.TryGetValue(aKey, out res))
+                return res;
+            return aDefault;
         }
 
         public override IEnumerable<JSONNode> Children
