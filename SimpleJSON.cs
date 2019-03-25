@@ -88,10 +88,20 @@
  * 
  * [2018-04-25 Update]
  *  - Added support for parsing single values (JSONBool, JSONString, JSONNumber, JSONNull) as top level value.
- *  
+ * 
  * [2019-02-18 Update]
  *  - Added HasKey(key) and GetValueOrDefault(key, default) to the JSONNode class to provide way to read
  *    values conditionally without creating a LazyCreator
+ * 
+ * [2019-03-25 Update]
+ *  - Added static setting "allowLineComments" to the JSONNode class which is true by default. This allows
+ *    "//" line comments when parsing json text as long as it's not within quoted text. All text after // up
+ *    to the end of the line is completely ignored / skipped. This makes it easier to create human readable
+ *    and editable files. Note that stripped comments are not read, processed or preserved in any way. So
+ *    this feature is only relevant for human created files.
+ *  - Explicitly strip BOM (Byte Order Mark) when parsing to avoid getting it leaked into a single primitive
+ *    value. That's a rare case but better safe than sorry.
+ *  - Allowing adding the empty string as key
  * 
  * The MIT License (MIT)
  * 
@@ -247,6 +257,7 @@ namespace SimpleJSON
 
         public static bool forceASCII = false; // Use Unicode by default
         public static bool longAsString = false; // lazy creator creates a JSONString instead of JSONNumber
+        public static bool allowLineComments = true; // allow "//"-style comments at the end of a line
 
         public abstract JSONNodeType Tag { get; }
 
@@ -727,6 +738,16 @@ namespace SimpleJSON
                             }
                         }
                         break;
+                    case '/':
+                        if (allowLineComments && !QuoteMode && i + 1 < aJSON.Length && aJSON[i+1] == '/')
+                        {
+                            while (++i < aJSON.Length && aJSON[i] != '\n' && aJSON[i] != '\r') ;
+                            break;
+                        }
+                        Token.Append(aJSON[i]);
+                        break;
+                    case '\uFEFF': // remove / ignore BOM (Byte Order Mark)
+                        break;
 
                     default:
                         Token.Append(aJSON[i]);
@@ -917,7 +938,7 @@ namespace SimpleJSON
             if (aItem == null)
                 aItem = JSONNull.CreateOrGet();
 
-            if (!string.IsNullOrEmpty(aKey))
+            if (aKey != null)
             {
                 if (m_Dict.ContainsKey(aKey))
                     m_Dict[aKey] = aItem;
