@@ -259,9 +259,14 @@ namespace SimpleJSON
         public Color ReadColor(Color aDefault)
         {
             if (IsObject)
-                return new Color(this["a"].AsFloat, this["r"].AsFloat, this["g"].AsFloat, this["b"].AsFloat);
+                return new Color(this["r"].AsFloat, this["g"].AsFloat, this["b"].AsFloat, this["a"].AsFloat);
             if (IsArray)
-                return new Color(this[0].AsFloat, this[1].AsFloat, this[2].AsFloat, this[3].AsFloat);
+            {
+                if (this.Count==3)
+                    return new Color(this[0].AsFloat, this[1].AsFloat, this[2].AsFloat, 1);
+                else if (this.Count==4)
+                    return new Color(this[0].AsFloat, this[1].AsFloat, this[2].AsFloat, this[3].AsFloat);
+            }
             return aDefault;
         }
         public Color ReadColor()
@@ -294,7 +299,12 @@ namespace SimpleJSON
             if (IsObject)
                 return new Color32((byte)this["r"].AsInt, (byte)this["g"].AsInt, (byte)this["b"].AsInt, (byte)this["a"].AsInt);
             if (IsArray)
-                return new Color32((byte)this[0].AsInt, (byte)this[1].AsInt, (byte)this[2].AsInt, (byte)this[3].AsInt);
+            {
+                if (this.Count==3)
+                    return new Color32((byte)this[0].AsInt, (byte)this[1].AsInt, (byte)this[2].AsInt, 255);
+                else if (this.Count==4)
+                    return new Color32((byte)this[0].AsInt, (byte)this[1].AsInt, (byte)this[2].AsInt, (byte)this[3].AsInt);
+            }
             return aDefault;
         }
         public Color32 ReadColor32()
