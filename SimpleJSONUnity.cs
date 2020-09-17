@@ -264,7 +264,7 @@ namespace SimpleJSON
             {
                 if (this.Count==3)
                     return new Color(this[0].AsFloat, this[1].AsFloat, this[2].AsFloat, 1);
-                else if (this.Count==4)
+                if (this.Count==4)
                     return new Color(this[0].AsFloat, this[1].AsFloat, this[2].AsFloat, this[3].AsFloat);
             }
             return aDefault;
@@ -302,7 +302,7 @@ namespace SimpleJSON
             {
                 if (this.Count==3)
                     return new Color32((byte)this[0].AsInt, (byte)this[1].AsInt, (byte)this[2].AsInt, 255);
-                else if (this.Count==4)
+                if (this.Count==4)
                     return new Color32((byte)this[0].AsInt, (byte)this[1].AsInt, (byte)this[2].AsInt, (byte)this[3].AsInt);
             }
             return aDefault;
