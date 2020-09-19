@@ -96,5 +96,16 @@
  *  
  * [2019-12-10 Update]
  *  - Added Clone() method to JSONNode to allow cloning of a whole node tree.
- *
+ * 
+ * [2020-09-19 Update]
+ *  - Added Clear() method to JSONNode.
+ *  - The parser will now automatically mark arrays or objects as inline when it doesn't contain any
+ *    new line characters. This should more or less preserve the layout.
+ *  - Added new extension file "SimpleJSONDotNetTypes.cs" to provide support for some basic .NET types
+ *    like decimal, char, byte, sbyte, short, ushort, uint, DateTime, TimeSpan and Guid as well as some
+ *    nullable types.
+ *  - Fixed an error in the Unity extension file. The Color component order was wrong (it was argb, now it's rgba)
+ *  - There are now two static float variables (ColorDefaultAlpha and Color32DefaultAlpha) to specify the default
+ *    alpha values when reading UnityEngine.Color / Color32 values where the alpha value is absent. The default
+ *    values are 1.0f and 255 respectively.
  */

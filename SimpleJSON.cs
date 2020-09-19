@@ -208,6 +208,7 @@ namespace SimpleJSON
         {
             return aNode;
         }
+        public virtual void Clear() { }
 
         public virtual JSONNode Clone()
         {
@@ -543,6 +544,7 @@ namespace SimpleJSON
             string TokenName = "";
             bool QuoteMode = false;
             bool TokenIsQuoted = false;
+            bool HasNewlineChar = false;
             while (i < aJSON.Length)
             {
                 switch (aJSON[i])
@@ -561,6 +563,7 @@ namespace SimpleJSON
                         TokenName = "";
                         Token.Length = 0;
                         ctx = stack.Peek();
+                        HasNewlineChar = false;
                         break;
 
                     case '[':
@@ -578,6 +581,7 @@ namespace SimpleJSON
                         TokenName = "";
                         Token.Length = 0;
                         ctx = stack.Peek();
+                        HasNewlineChar = false;
                         break;
 
                     case '}':
@@ -594,6 +598,8 @@ namespace SimpleJSON
                         stack.Pop();
                         if (Token.Length > 0 || TokenIsQuoted)
                             ctx.Add(TokenName, ParseElement(Token.ToString(), TokenIsQuoted));
+                        if (ctx != null)
+                            ctx.Inline = !HasNewlineChar;
                         TokenIsQuoted = false;
                         TokenName = "";
                         Token.Length = 0;
@@ -633,6 +639,7 @@ namespace SimpleJSON
 
                     case '\r':
                     case '\n':
+                        HasNewlineChar = true;
                         break;
 
                     case ' ':
@@ -776,6 +783,11 @@ namespace SimpleJSON
         {
             m_List.Remove(aNode);
             return aNode;
+        }
+
+        public override void Clear()
+        {
+            m_List.Clear();
         }
 
         public override JSONNode Clone()
@@ -935,6 +947,11 @@ namespace SimpleJSON
             }
         }
 
+        public override void Clear()
+        {
+            m_Dict.Clear();
+        }
+
         public override JSONNode Clone()
         {
             var node = new JSONObject();
@@ -1045,6 +1062,10 @@ namespace SimpleJSON
         {
             return m_Data.GetHashCode();
         }
+        public override void Clear()
+        {
+            m_Data = "";
+        }
     }
     // End of JSONString
 
@@ -1128,6 +1149,10 @@ namespace SimpleJSON
         {
             return m_Data.GetHashCode();
         }
+        public override void Clear()
+        {
+            m_Data = 0;
+        }
     }
     // End of JSONNumber
 
@@ -1185,6 +1210,10 @@ namespace SimpleJSON
         public override int GetHashCode()
         {
             return m_Data.GetHashCode();
+        }
+        public override void Clear()
+        {
+            m_Data = false;
         }
     }
     // End of JSONBool
