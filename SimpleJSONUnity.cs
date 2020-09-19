@@ -46,6 +46,8 @@ namespace SimpleJSON
     public enum JSONContainerType { Array, Object }
 	public partial class JSONNode
 	{
+        public static byte Color32DefaultAlpha = 255;
+        public static float ColorDefaultAlpha = 1f;
         public static JSONContainerType VectorContainerType = JSONContainerType.Array;
         public static JSONContainerType QuaternionContainerType = JSONContainerType.Array;
         public static JSONContainerType RectContainerType = JSONContainerType.Array;
@@ -259,9 +261,9 @@ namespace SimpleJSON
         public Color ReadColor(Color aDefault)
         {
             if (IsObject)
-                return new Color(this["a"].AsFloat, this["r"].AsFloat, this["g"].AsFloat, this["b"].AsFloat);
+                return new Color(this["r"].AsFloat, this["g"].AsFloat, this["b"].AsFloat, HasKey("a")?this["a"].AsFloat:ColorDefaultAlpha);
             if (IsArray)
-                return new Color(this[0].AsFloat, this[1].AsFloat, this[2].AsFloat, this[3].AsFloat);
+                return new Color(this[0].AsFloat, this[1].AsFloat, this[2].AsFloat, (Count>4)?this[3].AsFloat:ColorDefaultAlpha);
             return aDefault;
         }
         public Color ReadColor()
@@ -292,9 +294,9 @@ namespace SimpleJSON
         public Color32 ReadColor32(Color32 aDefault)
         {
             if (IsObject)
-                return new Color32((byte)this["r"].AsInt, (byte)this["g"].AsInt, (byte)this["b"].AsInt, (byte)this["a"].AsInt);
+                return new Color32((byte)this["r"].AsInt, (byte)this["g"].AsInt, (byte)this["b"].AsInt, (byte)(HasKey("a")?this["a"].AsInt:Color32DefaultAlpha));
             if (IsArray)
-                return new Color32((byte)this[0].AsInt, (byte)this[1].AsInt, (byte)this[2].AsInt, (byte)this[3].AsInt);
+                return new Color32((byte)this[0].AsInt, (byte)this[1].AsInt, (byte)this[2].AsInt, (byte)((Count>4)?this[3].AsInt:Color32DefaultAlpha));
             return aDefault;
         }
         public Color32 ReadColor32()
