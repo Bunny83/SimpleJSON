@@ -324,6 +324,21 @@ namespace SimpleJSON
             }
         }
 
+        public virtual ulong AsULong
+        {
+            get
+            {
+                ulong val = 0;
+                if (ulong.TryParse(Value, out val))
+                    return val;
+                return 0;
+            }
+            set
+            {
+                Value = value.ToString();
+            }
+        }
+
         public virtual JSONArray AsArray
         {
             get
@@ -390,6 +405,17 @@ namespace SimpleJSON
         public static implicit operator long(JSONNode d)
         {
             return (d == null) ? 0L : d.AsLong;
+        }
+
+        public static implicit operator JSONNode(ulong n)
+        {
+            if (longAsString)
+                return new JSONString(n.ToString());
+            return new JSONNumber(n);
+        }
+        public static implicit operator ulong(JSONNode d)
+        {
+            return (d == null) ? 0 : d.AsULong;
         }
 
         public static implicit operator JSONNode(bool b)
@@ -1051,6 +1077,11 @@ namespace SimpleJSON
             get { return (long)m_Data; }
             set { m_Data = value; }
         }
+        public override ulong AsULong
+        {
+            get { return (ulong)m_Data; }
+            set { m_Data = value; }
+        }
 
         public JSONNumber(double aData)
         {
@@ -1302,6 +1333,25 @@ namespace SimpleJSON
         }
 
         public override long AsLong
+        {
+            get
+            {
+                if (longAsString)
+                    Set(new JSONString("0"));
+                else
+                    Set(new JSONNumber(0.0));
+                return 0L;
+            }
+            set
+            {
+                if (longAsString)
+                    Set(new JSONString(value.ToString()));
+                else
+                    Set(new JSONNumber(value));
+            }
+        }
+
+        public override ulong AsULong
         {
             get
             {
