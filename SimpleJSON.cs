@@ -523,11 +523,14 @@ namespace SimpleJSON
         {
             if (quoted)
                 return token;
-            string tmp = token.ToLower();
-            if (tmp == "false" || tmp == "true")
-                return tmp == "true";
-            if (tmp == "null")
-                return JSONNull.CreateOrGet();
+            if (token.Length <= 5)
+            {
+                string tmp = token.ToLower();
+                if (tmp == "false" || tmp == "true")
+                    return tmp == "true";
+                if (tmp == "null")
+                    return JSONNull.CreateOrGet();
+            }
             double val;
             if (double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out val))
                 return val;
