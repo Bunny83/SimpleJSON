@@ -1,5 +1,5 @@
 /*
- * [2012-06-09 First Version]
+ * [2012-06-09 1.0]
  * - provides strongly typed node classes and lists / dictionaries
  * - provides easy access to class members / array items / data values
  * - the parser now properly identifies types. So generating JSON with this framework should work.
@@ -11,7 +11,7 @@
  * - It can serialize/deserialize a node tree into/from an experimental compact binary format. It might
  *   be handy if you want to store things in a file and don't want it to be easily modifiable
  * 
- * [2012-12-17 Update]
+ * [2012-12-17 1.1]
  * - Added internal JSONLazyCreator class which simplifies the construction of a JSON tree
  *   Now you can simple reference any item that doesn't exist yet and it will return a JSONLazyCreator
  *   The class determines the required type by it's further use, creates the type and removes itself.
@@ -22,7 +22,7 @@
  *   are all of type string, the serializer will "try" which format fits best. The order is: int, float, double, bool, string.
  *   It's not the most efficient way but for a moderate amount of data it should work on all platforms.
  * 
- * [2017-03-08 Update]
+ * [2017-03-08 1.2]
  * - Optimised parsing by using a StringBuilder for token. This prevents performance issues when large
  *   string data fields are contained in the json data.
  * - Finally refactored the badly named JSONClass into JSONObject.
@@ -30,12 +30,12 @@
  *   allows to propertly convert the node tree back to json without type information loss. The actual value
  *   parsing now happens at parsing time and not when you actually access one of the casting properties.
  * 
- * [2017-04-11 Update]
+ * [2017-04-11 1.3]
  * - Fixed parsing bug where empty string values have been ignored.
  * - Optimised "ToString" by using a StringBuilder internally. This should heavily improve performance for large files
  * - Changed the overload of "ToString(string aIndent)" to "ToString(int aIndent)"
  * 
- * [2017-11-29 Update]
+ * [2017-11-29 1.4]
  * - Removed the IEnumerator implementations on JSONArray & JSONObject and replaced it with a common
  *   struct Enumerator in JSONNode that should avoid garbage generation. The enumerator always works
  *   on KeyValuePair<string, JSONNode>, even for JSONArray.
@@ -67,24 +67,24 @@
  *   I made the JSONNull constructor private so if you need to create an instance manually use
  *   JSONNull.CreateOrGet()
  * 
- * [2018-01-09 Update]
+ * [2018-01-09 1.5]
  * - Changed all double.TryParse and double.ToString uses to use the invariant culture to avoid problems
  *   on systems with a culture that uses a comma as decimal point.
  * 
- * [2018-01-26 Update]
+ * [2018-01-26 1.6]
  * - Added AsLong. Note that a JSONNumber is stored as double and can't represent all long values. However
  *   storing it as string would work.
  * - Added static setting "JSONNode.longAsString" which controls the default type that is used by the
  *   LazyCreator when using AsLong
  * 
- * [2018-04-25 Update]
+ * [2018-04-25 1.7]
  *  - Added support for parsing single values (JSONBool, JSONString, JSONNumber, JSONNull) as top level value.
  * 
- * [2019-02-18 Update]
+ * [2019-02-18 1.8]
  *  - Added HasKey(key) and GetValueOrDefault(key, default) to the JSONNode class to provide way to read
  *    values conditionally without creating a LazyCreator
  * 
- * [2019-03-25 Update]
+ * [2019-03-25 1.9]
  *  - Added static setting "allowLineComments" to the JSONNode class which is true by default. This allows
  *    "//" line comments when parsing json text as long as it's not within quoted text. All text after // up
  *    to the end of the line is completely ignored / skipped. This makes it easier to create human readable
@@ -94,10 +94,10 @@
  *    value. That's a rare case but better safe than sorry.
  *  - Allowing adding the empty string as key
  *  
- * [2019-12-10 Update]
+ * [2019-12-10 1.10]
  *  - Added Clone() method to JSONNode to allow cloning of a whole node tree.
  * 
- * [2020-09-19 Update]
+ * [2020-09-19 1.11]
  *  - Added Clear() method to JSONNode.
  *  - The parser will now automatically mark arrays or objects as inline when it doesn't contain any
  *    new line characters. This should more or less preserve the layout.
@@ -108,4 +108,8 @@
  *  - There are now two static float variables (ColorDefaultAlpha and Color32DefaultAlpha) to specify the default
  *    alpha values when reading UnityEngine.Color / Color32 values where the alpha value is absent. The default
  *    values are 1.0f and 255 respectively.
+ *
+ * [2020-11-19 1.12]
+ *  - Organize code into a Unity package
+ *
  */
