@@ -1,6 +1,6 @@
 {
     "name": "com.banzaisoftware.simplejson",
-    "version": "1.12",
+    "version": "1.12.0",
     "displayName": "Simple JSON",
     "description": "Simple C# JSON parser as Unity package. Forked from https://github.com/Bunny83/SimpleJSON/",
     "unity": "2019.1",
