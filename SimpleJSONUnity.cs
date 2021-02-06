@@ -1,3 +1,4 @@
+#if UNITY_5_3_OR_NEWER
 #region License and information
 /* * * * *
  * 
@@ -38,7 +39,6 @@
  * * * * */
 
 #endregion License and information
-
 using UnityEngine;
 
 namespace SimpleJSON
@@ -459,3 +459,4 @@ namespace SimpleJSON
         #endregion Matrix4x4
     }
 }
+#endif
