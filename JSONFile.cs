@@ -1,35 +1,41 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using SPath = System.IO.Path;
 
-namespace SimpleJSON
-{
-    public class JSONFile
-    {
-        public readonly string OriginalPath = string.Empty;
-        public string Path { get; private set; } = string.Empty;
-        public JSONNode Data = new JSONObject();
-        public JSONNode this[string index]
-        {
-            get => Data[index];
-            set => Data[index] = value;
-        }
+namespace SimpleJSON {
+    public partial class JSONNode {
+        public virtual JSONFile AsFile => this as JSONFile;
+    }
+    public class JSONFile : JSONObject {
+        public string Path = string.Empty;
+        public string SystemPath => SPath.Combine(Environment.CurrentDirectory, Path ?? Guid.NewGuid().ToString());
 
-        public JSONFile(string path) {
-            OriginalPath = path;
-            Path = System.IO.Path.Combine(Environment.CurrentDirectory, path);
-        }
+        public JSONFile(string path) => Path = path;
 
-        public JSONFile Load()
-        {
-            try { Data = JSONNode.Parse(File.ReadAllText(Path)); }
-            catch { Data = new JSONObject(); }
+        public JSONFile Load() {
+            if (!JSON.TryParse(File.ReadAllText(SystemPath), out JSONNode node))
+                throw new FormatException("JSON File is not in valid format! (Parse error)");
+            foreach (KeyValuePair<string, JSONNode> pair in node)
+                Add(pair.Key, pair.Value);
             return this;
         }
 
-        public void Save(bool formatted = false) {
+        public JSONFile Save(bool formatted = false) {
             FileInfo fileInfo = new FileInfo(Path);
             fileInfo.Directory.Create();
-            File.WriteAllText(Path, Data.ToString(formatted ? 2 : 0));
+            File.WriteAllText(Path, ToString(formatted ? 2 : 0));
+            return this;
+        }
+
+        public JSONFile Save(string path, bool formatted = false) {
+            if (string.IsNullOrEmpty(Path))
+                return Save(formatted);
+            FileInfo fileInfo = new FileInfo(SPath.Combine(Environment.CurrentDirectory, path));
+            if (!fileInfo.Directory.Exists)
+                fileInfo.Directory.Create();
+            File.WriteAllText(fileInfo.FullName, ToString(formatted ? 2 : 0));
+            return this;
         }
     }
 }
