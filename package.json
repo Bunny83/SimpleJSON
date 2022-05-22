@@ -1,0 +1,16 @@
+{
+   "name":"com.bunny83.simpleJSON",
+   "version":"1.0.0",
+   "displayName":"simple json",
+   "description":"simple json",
+   "unity":"2021.3",
+   "dependencies":{
+   },
+   "keywords":[
+      "simple json"
+   ],
+   "author":{
+      "name":"bunny83",
+      "url":"https://github.com/Bunny83"
+   }
+}
