@@ -12,7 +12,7 @@
  * 
  * The MIT License (MIT)
  * 
- * Copyright (c) 2012-2019 Markus Göbel (Bunny83)
+ * Copyright (c) 2012-2022 Markus Göbel (Bunny83)
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -315,13 +315,13 @@ namespace SimpleJSON
             get
             {
                 long val = 0;
-                if (long.TryParse(Value, out val))
+                if (long.TryParse(Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out val))
                     return val;
                 return 0L;
             }
             set
             {
-                Value = value.ToString();
+                Value = value.ToString(CultureInfo.InvariantCulture);
             }
         }
 
@@ -330,13 +330,13 @@ namespace SimpleJSON
             get
             {
                 ulong val = 0;
-                if (ulong.TryParse(Value, out val))
+                if (ulong.TryParse(Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out val))
                     return val;
                 return 0;
             }
             set
             {
-                Value = value.ToString();
+                Value = value.ToString(CultureInfo.InvariantCulture);
             }
         }
 
@@ -363,7 +363,7 @@ namespace SimpleJSON
 
         public static implicit operator JSONNode(string s)
         {
-            return (s == null) ? (JSONNode) JSONNull.CreateOrGet() : new JSONString(s);
+            return (s == null) ? (JSONNode)JSONNull.CreateOrGet() : new JSONString(s);
         }
         public static implicit operator string(JSONNode d)
         {
@@ -400,7 +400,7 @@ namespace SimpleJSON
         public static implicit operator JSONNode(long n)
         {
             if (longAsString)
-                return new JSONString(n.ToString());
+                return new JSONString(n.ToString(CultureInfo.InvariantCulture));
             return new JSONNumber(n);
         }
         public static implicit operator long(JSONNode d)
@@ -411,7 +411,7 @@ namespace SimpleJSON
         public static implicit operator JSONNode(ulong n)
         {
             if (longAsString)
-                return new JSONString(n.ToString());
+                return new JSONString(n.ToString(CultureInfo.InvariantCulture));
             return new JSONNumber(n);
         }
         public static implicit operator ulong(JSONNode d)
@@ -797,7 +797,7 @@ namespace SimpleJSON
         {
             var node = new JSONArray();
             node.m_List.Capacity = m_List.Capacity;
-            foreach(var n in m_List)
+            foreach (var n in m_List)
             {
                 if (n != null)
                     node.Add(n.Clone());
@@ -1377,7 +1377,7 @@ namespace SimpleJSON
             set
             {
                 if (longAsString)
-                    Set(new JSONString(value.ToString()));
+                    Set(new JSONString(value.ToString(CultureInfo.InvariantCulture)));
                 else
                     Set(new JSONNumber(value));
             }
@@ -1396,7 +1396,7 @@ namespace SimpleJSON
             set
             {
                 if (longAsString)
-                    Set(new JSONString(value.ToString()));
+                    Set(new JSONString(value.ToString(CultureInfo.InvariantCulture)));
                 else
                     Set(new JSONNumber(value));
             }
