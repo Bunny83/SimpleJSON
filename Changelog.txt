@@ -108,4 +108,7 @@
  *  - There are now two static float variables (ColorDefaultAlpha and Color32DefaultAlpha) to specify the default
  *    alpha values when reading UnityEngine.Color / Color32 values where the alpha value is absent. The default
  *    values are 1.0f and 255 respectively.
+ * 
+ * [2022-08-03 BugFix]
+ *  - Fixed a few cases where the invariant culture wasn't used yet.
  */
