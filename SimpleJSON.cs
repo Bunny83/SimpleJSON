@@ -1124,7 +1124,7 @@ namespace SimpleJSON
 
         internal override void WriteToStringBuilder(StringBuilder aSB, int aIndent, int aIndentInc, JSONTextMode aMode)
         {
-            aSB.Append(Value);
+            aSB.Append(Value.ToString(CultureInfo.InvariantCulture));
         }
         private static bool IsNumeric(object value)
         {
