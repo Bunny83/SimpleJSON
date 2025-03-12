@@ -1223,15 +1223,19 @@ namespace SimpleJSON
 
     public partial class JSONNull : JSONNode
     {
-        static JSONNull m_StaticInstance = new JSONNull();
         public static bool reuseSameInstance = true;
         public static JSONNull CreateOrGet()
         {
             if (reuseSameInstance)
-                return m_StaticInstance;
+                return InstanceBuilder.Instance;
             return new JSONNull();
         }
         private JSONNull() { }
+
+        private class InstanceBuilder{
+            static InstanceBuilder(){}
+            internal static readonly JSONNull Instance = new JSONNull();
+        }
 
         public override JSONNodeType Tag { get { return JSONNodeType.NullValue; } }
         public override bool IsNull { get { return true; } }
