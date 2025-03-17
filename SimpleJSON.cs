@@ -862,8 +862,8 @@ namespace SimpleJSON
         {
             get
             {
-                if (m_Dict.ContainsKey(aKey))
-                    return m_Dict[aKey];
+                if (m_Dict.TryGetValue(aKey, out JSONNode outJsonNode))
+                    return outJsonNode;
                 else
                     return new JSONLazyCreator(this, aKey);
             }
